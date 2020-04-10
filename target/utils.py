@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import glob
+import os
 
 def np_to_dataframe(np_list) -> pd.DataFrame:
     """
@@ -14,25 +15,26 @@ def np_to_dataframe(np_list) -> pd.DataFrame:
     else: #np.load 済みなら
         return pd.DataFrame(np_list)
         
-def setup(dense_flag=False):
-    img_middle_feature_files = sorted(glob.glob('/mnt/aoni04/katayama/DATA2020/lld_all/*csv'))
-    feature_files = sorted(glob.glob('/mnt/aoni04/katayama/DATA2020/feature/*csv'))
-    print(f'file length is {len(img_middle_feature_files)} and {len(feature_files)}')
+def setup(PATH='/mnt/aoni04/katayama/DATA2020/',dense_flag=False):
+    lld_files = sorted(glob.glob(os.path.join(PATH,'lld_all/*csv')))
+    feature_files = sorted(glob.glob(os.path.join(PATH,'feature/*csv')))
+    gaze_files = sorted(glob.glob(os.path.join(PATH, 'img_middle64/*npy')))
+
+    print(f'file length is {len(lld_files)} and {len(feature_files)}')
     df_list = []
     lld_list = []
-    for i in range(len(feature_files)-94):
+    for i in range(len(feature_files)):
         df = pd.read_csv(feature_files[i])
-        try:
-            lld = pd.read_csv(img_middle_feature_files[i])
-        except:
-            print(img_middle_feature_files[i])
-            continue
-        #df = pd.concat([df,img,imgB],axis=1)
-        #if not dense_flag:
-        #    reset_array = [-1] * len(df.columns)
-        #    df.loc['reset'] = reset_array 
-        #    df_list.append(df)
-        #else:
+        lld = pd.read_csv(lld_files[i])
+        gaze = pd.DataFrame(np.load(gaze_files[i]))
+
+        length = min([len(gaze), len(df), len(lld)//10])
+        gaze = gaze[:length]
+        df = df[:length]
+        df = pd.concat([df, gaze], axis=1)
+        df = df.fillna(0)
         df_list.append(df)
+
+        lld = lld[:length*10]
         lld_list.append(lld)
     return df_list, lld_list
